@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111723">
+  <title>MarketFlow</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:Inter,"Segoe UI",Arial,sans-serif;color-scheme:light;--bg:#ffffff;--surface:#ffffff;--text:#202b38;--muted:#748093;--border:#e2e6ed;--grid:#edf0f4;--rise:#ffffff;--rise-border:#283747;--fall:#505967;--fall-border:#505967;--accent:#246be6;--shadow:0 12px 32px rgba(26,39,55,.13)}
+    html[data-theme="dark"]{color-scheme:dark;--bg:#111723;--surface:#182130;--text:#e2e7f1;--muted:#a1aaba;--border:#344050;--grid:#242e3d;--rise:#2cb59c;--rise-border:#2cb59c;--fall:#e56f7b;--fall-border:#e56f7b;--accent:#70a6ff;--shadow:0 12px 32px rgba(0,0,0,.35)}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text)}
+    button,select{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:hover{background:var(--grid)}
+    #app{position:fixed;inset:0;display:flex;flex-direction:column}
+    .top{height:52px;min-height:52px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;gap:5px;align-items:center;padding:0 12px;overflow-x:auto;scrollbar-width:none;white-space:nowrap;z-index:5}
+    .top::-webkit-scrollbar{display:none}.logo{font-size:16px;font-weight:750;letter-spacing:-.45px;margin-right:12px}.logo .dot{color:var(--accent)}
+    .top button,.top select{height:34px;border-radius:6px;padding:0 10px;font-size:13px}.top select{border:1px solid var(--border)}.divider{height:23px;width:1px;background:var(--border);margin:0 4px}
+    .stage{flex:1;position:relative;min-height:0}#chart{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+    .left{position:absolute;top:12px;left:8px;display:flex;flex-direction:column;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);z-index:2}
+    .left button{height:38px;width:38px;border-radius:7px;font-size:19px;display:grid;place-items:center}.left button.active{color:var(--accent);background:var(--grid);box-shadow:inset 3px 0 var(--accent)}
+    .chart-title{position:absolute;left:66px;top:13px;pointer-events:none;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;z-index:1}.pill{color:var(--muted);font-size:10px;font-weight:600;background:var(--surface);border:1px solid var(--border);padding:4px 6px;border-radius:4px}
+    .foot{height:27px;min-height:27px;background:var(--surface);border-top:1px solid var(--border);color:var(--muted);font-size:11px;display:flex;align-items:center;gap:12px;padding:0 12px;white-space:nowrap;overflow:hidden}.foot .right{margin-left:auto}
+    .panel{position:absolute;top:10px;right:10px;width:min(310px,calc(100vw - 85px));max-height:calc(100% - 25px);overflow:auto;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;padding:14px;z-index:4}.panel.hidden{display:none}
+    #watchlist{top:11px;right:12px;width:min(360px,calc(100vw - 88px));padding:0;border-radius:12px;overflow:hidden;z-index:12;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .watch-head{display:flex;align-items:center;justify-content:space-between;padding:15px 16px 12px;border-bottom:1px solid var(--border)}
+    .watch-head h3{margin:0;font-weight:700;letter-spacing:-.2px}.watch-head button{font-size:17px;color:var(--muted);padding:4px 8px;border-radius:5px}
+    .watch-search{margin:12px 12px 7px;width:calc(100% - 24px);border:1px solid var(--border);border-radius:7px;padding:10px 12px;background:var(--bg);color:var(--text);font:inherit;outline-offset:1px}
+    .watch-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:9px 16px 5px}
+    #watchItems{max-height:min(52vh,430px);overflow-y:auto;padding:0 7px 8px}
+    .watch-row{border-bottom:0!important;padding:10px!important;border-radius:7px;gap:14px}
+    .watch-row.active{background:var(--grid);color:var(--accent)}
+    .watch-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .watch-meta strong{font-size:13px;font-weight:700}.watch-meta small{font-size:11px;color:var(--muted)}
+    .watch-row .star{font-size:16px;color:var(--muted);flex:none}
+    .watch-tail{border-top:1px solid var(--border);padding:10px 16px 12px;color:var(--muted);font-size:11px;line-height:1.45}
+    #watchBtn[aria-expanded="true"]{color:var(--accent);background:var(--grid)}
+    .panel h3{font-size:15px;margin:0 0 12px}.panel p{font-size:12px;color:var(--muted);line-height:1.5}.panel .close{float:right;border-radius:5px;padding:2px 6px}.watch-row,.object-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:10px 3px;cursor:pointer;font-size:13px}.watch-row:hover,.object-row:hover{background:var(--grid)}.small{font-size:11px;color:var(--muted)}
+    .ind-row{padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;gap:10px}.ind-row .soon{font-size:11px;color:var(--muted)}
+    .toast{position:absolute;bottom:12px;left:60px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 11px;box-shadow:var(--shadow);font-size:12px;z-index:6;display:none}
+    .notice{font-weight:600;color:#b66c26}html[data-theme=dark] .notice{color:#edbd77}
+    /* Chart settings: compact desktop panel, opened only on demand. */
+    #chartSettings{width:min(365px,calc(100vw - 90px));padding:0;z-index:13}
+    .settings-head{display:flex;align-items:center;justify-content:space-between;padding:15px 17px;border-bottom:1px solid var(--border)}
+    .settings-head h3{margin:0}.settings-content{padding:15px 17px 18px;max-height:min(70vh,590px);overflow-y:auto}
+    .settings-section-title{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+    .settings-section-title:first-child{margin-top:0}
+    .theme-options{display:grid;grid-template-columns:1fr 1fr;gap:9px}.theme-options button{border:1px solid var(--border);border-radius:8px;padding:10px 8px;background:var(--bg);font-size:13px}
+    .theme-options button.chosen{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+    .settings-note{font-size:11px!important;margin:8px 0 2px;color:var(--muted)}
+    .color-option{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:39px;border-bottom:1px solid var(--border);font-size:12px}
+    .color-trigger{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:6px;padding:5px 7px;height:31px;background:var(--bg);min-width:72px;justify-content:space-between;cursor:pointer}
+    .color-trigger:hover{border-color:var(--accent)}
+    .color-preview{width:26px;height:19px;border:1px solid rgba(130,135,145,.65);border-radius:4px;display:inline-block;background-color:#fff;background-image:linear-gradient(45deg,#bbc1c9 25%,transparent 25%,transparent 75%,#bbc1c9 75%),linear-gradient(45deg,#bbc1c9 25%,transparent 25%,transparent 75%,#bbc1c9 75%);background-position:0 0,5px 5px;background-size:10px 10px;overflow:hidden}
+    .color-preview-fill{display:block;width:100%;height:100%}
+    .color-trigger .chevron{font-size:10px;color:var(--muted)}
+    .color-picker{position:fixed;z-index:200;width:308px;max-width:calc(100vw - 16px);padding:11px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 16px 42px rgba(0,0,0,.30);color:var(--text)}
+    .color-picker.hidden{display:none}.color-picker-header{display:flex;align-items:center;justify-content:space-between;margin:0 0 9px;font-size:12px;font-weight:700}.color-picker-close{padding:3px 7px;border-radius:5px}
+    .swatch-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+    .color-swatch{width:100%;aspect-ratio:1;border-radius:2px;border:1px solid rgba(135,140,150,.15);padding:0;min-height:18px;position:relative}
+    .color-swatch:hover{outline:2px solid var(--accent);outline-offset:1px}.color-swatch.selected{outline:2px solid var(--accent);outline-offset:1px}.color-swatch.selected:after{content:'✓';color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;position:absolute;inset:0;display:grid;place-items:center;font-size:11px}
+    .picker-custom{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+    .picker-custom label{font-size:11px;color:var(--muted)}.picker-custom input[type=color]{width:32px;height:30px;padding:2px;border:1px solid var(--border);border-radius:5px;background:var(--bg);cursor:pointer}
+    .picker-hex{min-width:0;flex:1;height:31px;padding:5px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font:12px ui-monospace,monospace}
+    .opacity-title{font-size:11px;color:var(--muted);margin:12px 0 6px;display:flex;justify-content:space-between}.opacity-row{display:flex;align-items:center;gap:8px}.opacity-row input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}.opacity-row output{font-size:11px;color:var(--text);min-width:33px;text-align:right}
+    .picker-hint{font-size:10px;color:var(--muted);margin-top:10px}
+    
+    .settings-check{display:flex;align-items:center;justify-content:space-between;padding:9px 0;font-size:12px}
+    .settings-check input{accent-color:var(--accent)}
+    .settings-actions{display:flex;gap:8px;margin-top:14px}.settings-actions button{border:1px solid var(--border);border-radius:6px;padding:8px 12px;background:var(--bg);font-size:12px}
+
+    @media(max-width:600px){.top{height:47px;min-height:47px;padding:0 6px}.logo{font-size:13px;margin-right:4px}.top button,.top select{font-size:12px;height:32px;padding:0 7px}.left{left:4px;top:11px;padding:3px;gap:2px}.left button{height:34px;width:34px;font-size:18px}.chart-title{left:49px;top:11px;font-size:11px}.pill{font-size:9px}.foot{font-size:9px;padding:0 5px;gap:7px}.panel{right:4px;top:5px}}
+
+    /* Desktop-first professional, compact chart drawing toolbar. */
+    .left{top:9px;left:7px;gap:2px;padding:4px;border-radius:8px}
+    .tool-group{display:flex;align-items:center;position:relative;border-radius:6px}
+    .tool-group.active{background:var(--grid)}
+    .left .tool-main{height:35px;width:38px;border-radius:6px;display:grid;place-items:center;font-size:13px}
+    .left .tool-main.active{box-shadow:inset 2px 0 var(--accent)}
+    .tool-main svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .tool-expander{position:absolute;right:-11px;top:8px;width:14px;height:20px!important;border:1px solid var(--border)!important;border-radius:4px!important;background:var(--surface)!important;font-size:9px!important;opacity:0;box-shadow:var(--shadow)}
+    .tool-group:hover .tool-expander,.tool-group:focus-within .tool-expander{opacity:1}
+    .tool-divider{height:1px;background:var(--border);margin:4px 6px}
+    .tool-popup{position:absolute;top:47px;left:57px;z-index:15;width:235px;max-height:calc(100% - 65px);overflow-y:auto;background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:0 14px 42px rgba(0,0,0,.28);border-radius:10px;padding:7px}
+    .tool-popup.hidden{display:none}
+    .tool-popup-head{padding:8px 10px 10px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);margin-bottom:3px}
+    .tool-choice{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:6px;font-size:12px}
+    .tool-choice:hover,.tool-choice.active{background:var(--grid);color:var(--accent)}
+    .tool-choice svg{width:17px;height:17px;flex:0 0 17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .tool-choice small{color:var(--muted);margin-left:auto;font-size:10px}
+    #objects{left:58px;right:auto;top:10px;width:255px}
+    #objects .object-row{gap:8px}#objects .object-row button{font-size:12px;border:1px solid var(--border);border-radius:5px;padding:3px 6px}
+    .tool-selected-name{position:absolute;top:10px;left:62px;z-index:1;font-size:11px;color:var(--accent);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 8px;pointer-events:none}
+    @media(max-width:600px){.tool-popup{left:48px;top:47px}.left .tool-main{height:32px;width:32px}.tool-main svg{height:18px;width:18px}.tool-expander{right:-10px;top:7px}}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="top" aria-label="MarketFlow chart toolbar">
+    <span class="logo">MarketFlow<span class="dot">.</span></span>
+    <select id="symbol" aria-label="Symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>XAUUSD</option><option>EURUSD</option></select>
+    <select id="timeframe" aria-label="Timeframe"><option value="1">1m</option><option value="5" selected>5m</option><option value="15">15m</option><option value="60">1H</option><option value="240">4H</option><option value="1440">1D</option></select>
+    <span class="divider"></span>
+    <button id="indicatorBtn" title="Indicator library">＋ Indicators</button>
+    <button id="watchBtn" title="Open watchlist popup" aria-controls="watchlist" aria-expanded="false">☷ Watchlist</button>
+    <button id="settingsBtn" title="Customize chart colors and appearance" aria-controls="chartSettings" aria-expanded="false">⚙ Chart Settings</button>
+    <button id="undoBtn" title="Undo drawing">↶ Undo</button>
+    <button id="saveBtn" title="Save drawings and layout">▣ Save</button>
+  </header>
+  <main class="stage" id="stage">
+    <canvas id="chart" aria-label="MarketFlow demo candlestick chart"></canvas>
+    <div class="chart-title"><span id="chartLabel">BTCUSDT · 5m</span><span class="pill">DEMO DATA</span></div>
+    <nav class="left" aria-label="Drawing toolbar">
+      <div class="tool-group"><button class="tool-main active" data-tool="cursor" title="Cursor / pan" aria-label="Cursor / pan"><svg viewBox="0 0 24 24"><path d="M4 3l7.3 17 2.5-7 7-2.5z"/></svg></button></div>
+      <div class="tool-group"><button class="tool-main" data-tool="trend" title="Trend line" aria-label="Trend line"><svg viewBox="0 0 24 24"><path d="M4 19L20 5"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="5" r="2"/></svg></button><button class="tool-expander" data-group="lines" title="All line tools">›</button></div>
+      <div class="tool-group"><button class="tool-main" data-tool="fib" title="Fibonacci retracement" aria-label="Fibonacci retracement"><svg viewBox="0 0 24 24"><path d="M3 4h18M3 8h12M3 12h18M3 16h12M3 20h18"/></svg></button><button class="tool-expander" data-group="fibonacci" title="Fibonacci tools">›</button></div>
+      <div class="tool-group"><button class="tool-main" data-tool="rectangle" title="Rectangle" aria-label="Rectangle"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><circle cx="4" cy="5" r="1.2"/><circle cx="20" cy="19" r="1.2"/></svg></button><button class="tool-expander" data-group="shapes" title="Shapes">›</button></div>
+      <div class="tool-divider"></div>
+      <div class="tool-group"><button class="tool-main" data-tool="long" title="Long position" aria-label="Long position"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="8" rx="1"/><rect x="5" y="13" width="14" height="8" rx="1"/><path d="M12 6v12"/></svg></button><button class="tool-expander" data-group="positions" title="Position and measuring tools">›</button></div>
+      <div class="tool-group"><button class="tool-main" data-tool="text" title="Add text" aria-label="Add text"><svg viewBox="0 0 24 24"><path d="M3 6V4h18v2M12 4v16M7 20h10"/></svg></button><button class="tool-expander" data-group="annotations" title="Annotations">›</button></div>
+      <div class="tool-divider"></div>
+      <div class="tool-group"><button class="tool-main" id="objectBtn" title="Drawings object tree" aria-label="Drawings object tree"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M6 9v9h9M6 6h9"/></svg></button></div>
+      <div class="tool-group"><button class="tool-main" id="visibilityBtn" title="Hide or show drawings" aria-label="Hide or show drawings"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      <div class="tool-group"><button class="tool-main" id="eraseBtn" title="Undo last drawing" aria-label="Undo last drawing"><svg viewBox="0 0 24 24"><path d="M4 9h11a5 5 0 0 1 0 10h-4M4 9l5-5M4 9l5 5"/></svg></button></div>
+    </nav>
+    <div id="toolPopup" class="tool-popup hidden" role="menu" aria-label="Drawing tools"></div>
+    <aside id="objects" class="panel hidden"><button class="close" data-close="objects">✕</button><h3>Drawing objects</h3><p>Objects stay anchored to chart price and time coordinates.</p><div id="objectItems"></div></aside>
+    <aside id="indicators" class="panel hidden"><button class="close" data-close="indicators">✕</button><h3>Indicators</h3><p>Indicators are intentionally disabled for now. We'll add each one as an optional tool later; nothing will auto-load onto your chart.</p><div class="ind-row">EMA / SMA <span class="soon">Coming later</span></div><div class="ind-row">RSI / MACD <span class="soon">Coming later</span></div><div class="ind-row">SMC / ICT / SMT <span class="soon">Coming later</span></div><div class="ind-row">Order Flow / Footprint <span class="soon">Data feed needed</span></div></aside>
+    <aside id="chartSettings" class="panel hidden" role="dialog" aria-label="Chart settings" aria-modal="false">
+      <div class="settings-head"><h3>Chart settings</h3><button class="close" data-close="chartSettings" title="Close settings" aria-label="Close settings">✕</button></div>
+      <div class="settings-content">
+        <div class="settings-section-title">Appearance</div>
+        <div class="theme-options"><button type="button" data-theme-option="dark">☾ Dark</button><button type="button" data-theme-option="light">☀ Light</button></div>
+        <p class="settings-note">Each theme remembers its own chart colors.</p>
+        <div class="settings-section-title">Symbol · Candles</div>
+        <label class="settings-check">Color based on previous close <input id="colorPrevClose" type="checkbox"></label>
+        <label class="settings-check">Show candle bodies <input id="showBody" type="checkbox" checked></label>
+        <div class="color-option">Bullish body <button type="button" class="color-trigger" data-chart-color="upBody" aria-label="Choose bullish body color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <div class="color-option">Bearish body <button type="button" class="color-trigger" data-chart-color="downBody" aria-label="Choose bearish body color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <label class="settings-check">Show candle borders <input id="showBorders" type="checkbox" checked></label>
+        <div class="color-option">Bullish border <button type="button" class="color-trigger" data-chart-color="upBorder" aria-label="Choose bullish border color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <div class="color-option">Bearish border <button type="button" class="color-trigger" data-chart-color="downBorder" aria-label="Choose bearish border color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <label class="settings-check">Show candle wicks <input id="showWicks" type="checkbox" checked></label>
+        <div class="color-option">Bullish wick <button type="button" class="color-trigger" data-chart-color="upWick" aria-label="Choose bullish wick color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <div class="color-option">Bearish wick <button type="button" class="color-trigger" data-chart-color="downWick" aria-label="Choose bearish wick color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <div class="settings-section-title">Canvas</div>
+        <div class="color-option">Background <button type="button" class="color-trigger" data-chart-color="background" aria-label="Choose background color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <div class="color-option">Grid lines <button type="button" class="color-trigger" data-chart-color="grid" aria-label="Choose grid color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <label class="settings-check">Show grid <input id="showGrid" type="checkbox" checked></label>
+        <div class="settings-section-title">Scales & lines</div>
+        <div class="color-option">Last price line <button type="button" class="color-trigger" data-chart-color="priceLine" aria-label="Choose price line color"><span class="color-preview"><span class="color-preview-fill"></span></span><span class="chevron">▾</span></button></div>
+        <label class="settings-check">Show last price line <input id="showPriceLine" type="checkbox" checked></label>
+        <div class="settings-actions"><button type="button" id="resetChartColors">↺ Reset current theme colors</button></div>
+        <p class="settings-note">Changes are applied immediately and saved in this browser.</p>
+      </div>
+    </aside>
+    <aside id="watchlist" class="panel hidden" role="dialog" aria-label="Watchlist popup" aria-modal="false">
+      <div class="watch-head"><h3>Watchlist</h3><button data-close="watchlist" aria-label="Close watchlist">✕</button></div>
+      <input class="watch-search" type="search" id="watchSearch" placeholder="Search symbols..." aria-label="Search watchlist symbols">
+      <div class="watch-label">Instruments · Demo data</div><div id="watchItems"></div>
+      <div class="watch-tail">Select a symbol to open its chart. Prices on this prototype are simulated; no live broker feed is connected.</div>
+    </aside>
+    <div id="colorPicker" class="color-picker hidden" role="dialog" aria-label="Chart color palette" aria-modal="false">
+      <div class="color-picker-header"><span id="pickerTitle">Choose color</span><button id="pickerClose" class="color-picker-close" title="Close palette">✕</button></div>
+      <div id="swatchGrid" class="swatch-grid" aria-label="Preset colors"></div>
+      <div class="picker-custom"><label for="customPicker">Custom</label><input id="customPicker" type="color" aria-label="Custom color"><input id="pickerHex" class="picker-hex" maxlength="7" spellcheck="false" aria-label="Hex color code" placeholder="#RRGGBB"></div>
+      <div class="opacity-title"><span>Opacity</span><span id="opacitySummary">100%</span></div>
+      <div class="opacity-row"><input id="pickerOpacity" type="range" min="0" max="100" step="1" value="100" aria-label="Color opacity"><output id="opacityOutput">100%</output></div>
+      <div class="picker-hint">Changes apply instantly · settings are saved locally.</div>
+    </div>
+    <div id="toast" class="toast" role="status"></div>
+  </main>
+  <footer class="foot"><span class="notice">DEMO · NOT LIVE PRICES</span><span>Wheel: zoom · Drag: pan</span><span id="toolLabel">Cursor</span><span class="right">Saved on this device</span></footer>
+</div>
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const canvas = $('#chart'), stage = $('#stage'), cx = canvas.getContext('2d');
+const symbols = ['XAUUSD','EURUSD','GBPUSD','BTCUSDT','ETHUSDT','USDJPY','DXY','MES1!','MNQ1!'];
+const symbolNames = {XAUUSD:'Gold / U.S. Dollar',EURUSD:'Euro / U.S. Dollar',GBPUSD:'British Pound / U.S. Dollar',BTCUSDT:'Bitcoin / Tether',ETHUSDT:'Ethereum / Tether',USDJPY:'U.S. Dollar / Japanese Yen',DXY:'U.S. Dollar Index','MES1!':'Micro E-mini S&P 500','MNQ1!':'Micro E-mini Nasdaq 100'};
+const paletteDefaults = {
+  dark:{background:'#111723',grid:'#242e3d',upBody:'#2cb59c',downBody:'#e56f7b',upWick:'#2cb59c',downWick:'#e56f7b',upBorder:'#2cb59c',downBorder:'#e56f7b',priceLine:'#2f7ee9'},
+  light:{background:'#ffffff',grid:'#edf0f4',upBody:'#ffffff',downBody:'#505967',upWick:'#283747',downWick:'#505967',upBorder:'#283747',downBorder:'#505967',priceLine:'#2f7ee9'}
+};
+const defaults = {theme:'dark',symbol:'BTCUSDT',timeframe:5,showGrid:true,showBody:true,showWicks:true,showBorders:true,showPriceLine:true,colorPrevClose:false};
+let cfg = {...defaults};
+try {const fromStorage = JSON.parse(localStorage.getItem('marketflow-config')||'{}'); cfg = {...cfg,...fromStorage};} catch(_){}
+cfg.theme = cfg.theme === 'light' ? 'light' : 'dark';
+cfg.palettes = {dark:{...paletteDefaults.dark,...(cfg.palettes?.dark||{})},light:{...paletteDefaults.light,...(cfg.palettes?.light||{})}};
+const opacityDefaults=()=>Object.fromEntries(Object.keys(paletteDefaults.dark).map(k=>[k,100]));
+cfg.opacities={dark:{...opacityDefaults(),...(cfg.opacities?.dark||{})},light:{...opacityDefaults(),...(cfg.opacities?.light||{})}};
+
+if (!symbols.includes(cfg.symbol)) cfg.symbol = defaults.symbol;
+if (![1,5,15,60,240,1440].includes(+cfg.timeframe)) cfg.timeframe = 5;
+cfg.timeframe = +cfg.timeframe;
+let candles=[], drawings=[], active='cursor', gesture=null, preview=null, showDrawings=true;
+let W=800,H=400,DPR=1,viewBars=95,endIndex=0,scale=null,hover=null;
+const rightAxis=86,leftPad=12,topPad=50,bottomAxis=32;
+function key(){return 'marketflow-drawings:'+cfg.symbol+':'+cfg.timeframe;}
+function persist(){try{localStorage.setItem('marketflow-config',JSON.stringify(cfg));localStorage.setItem(key(),JSON.stringify(drawings));}catch(_) {}}
+function restoreDrawings(){try{const raw=JSON.parse(localStorage.getItem(key())||'[]');drawings=Array.isArray(raw)?raw.filter(x=>x&&x.a&&x.type):[];}catch(_){drawings=[];}objects();}
+function seedFrom(str){return [...str].reduce((a,c)=>Math.imul(a,31)+c.charCodeAt(0)|0,1234567)>>>0;}
+function generate(){let seed=seedFrom(cfg.symbol+cfg.timeframe), rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  let p={BTCUSDT:68250,ETHUSDT:3420,XAUUSD:2710,EURUSD:1.0826,GBPUSD:1.274,USDJPY:151.32,DXY:104.8,'MES1!':5990,'MNQ1!':20810}[cfg.symbol], step=cfg.timeframe*60,now=Math.floor(Date.now()/1000/step)*step;
+  candles=Array.from({length:520},(_,i)=>{let open=p,move=(rnd()-.494)*p*.0036,close=Math.max(p*.01,p+move),spread=p*.00125,high=Math.max(open,close)+rnd()*spread,low=Math.min(open,close)-rnd()*spread;p=close;return {time:now-(519-i)*step,open,high,low,close};});
+  viewBars=W<600?48:105;endIndex=candles.length+4;restoreDrawings();render();
+}
+function withOpacity(hex,key){const opacity=Math.max(0,Math.min(100,Number(cfg.opacities[cfg.theme][key]??100)))/100;const raw=String(hex).replace('#','');if(!/^[0-9a-f]{6}$/i.test(raw))return hex;return 'rgba('+[0,2,4].map(i=>parseInt(raw.slice(i,i+2),16)).join(',')+','+opacity+')';}
+function colors(){
+  const styles=getComputedStyle(document.documentElement),p=cfg.palettes[cfg.theme];
+  const c=k=>withOpacity(p[k],k);
+  return {bg:c('background'),grid:c('grid'),text:styles.getPropertyValue('--text').trim(),muted:styles.getPropertyValue('--muted').trim(),rise:c('upBody'),fall:c('downBody'),riseBorder:c('upBorder'),fallBorder:c('downBorder'),riseWick:c('upWick'),fallWick:c('downWick'),priceLine:c('priceLine')};
+}
+function xPos(i){return leftPad+(i-scale.start+.5)*scale.barWidth;}
+function yPos(p){return topPad+(scale.high-p)/(scale.high-scale.low)*scale.plotH;}
+function atPoint(x,y){return {index:scale.start+(x-leftPad)/scale.barWidth-.5,price:scale.high-(y-topPad)/scale.plotH*(scale.high-scale.low)};}
+function formatPrice(p){return p.toLocaleString('en-US',{minimumFractionDigits:['EURUSD','GBPUSD'].includes(cfg.symbol)?5:cfg.symbol==='USDJPY'?3:2,maximumFractionDigits:['EURUSD','GBPUSD'].includes(cfg.symbol)?5:cfg.symbol==='USDJPY'?3:2});}
+function line(x1,y1,x2,y2,color,width=1,dash=[]){cx.beginPath();cx.setLineDash(dash);cx.strokeStyle=color;cx.lineWidth=width;cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();cx.setLineDash([]);}
+function label(t,x,y,color,align='left',size=11){cx.font=size+'px "Segoe UI",Arial,sans-serif';cx.fillStyle=color;cx.textAlign=align;cx.fillText(String(t),x,y);cx.textAlign='left';}
+function render(){if(!candles.length||W<50||H<70)return;
+  const c=colors(),plotW=W-leftPad-rightAxis,plotH=H-topPad-bottomAxis;
+  viewBars=Math.max(16,Math.min(270,viewBars));endIndex=Math.max(viewBars-1,Math.min(candles.length+30,endIndex));
+  const start=endIndex-viewBars, barWidth=plotW/viewBars;
+  const sample=candles.filter((_,i)=>i>=Math.floor(start)-1&&i<=Math.ceil(endIndex)+1);
+  let low=Math.min(...sample.map(v=>v.low)),high=Math.max(...sample.map(v=>v.high));if(!Number.isFinite(low)||!Number.isFinite(high)){low=0;high=1;}
+  const margin=(high-low)*.10||high*.005||1;low-=margin;high+=margin;
+  scale={start,barWidth,high,low,plotH,plotW};
+  cx.clearRect(0,0,W,H);cx.fillStyle=c.bg;cx.fillRect(0,0,W,H);
+  for(let k=0;k<=7;k++){const y=topPad+k*plotH/7;if(cfg.showGrid)line(leftPad,y,W-rightAxis,y,c.grid);label(formatPrice(high-(y-topPad)/plotH*(high-low)),W-rightAxis+8,y+4,c.muted);}
+  const tick=Math.max(1,Math.round(100/barWidth));
+  for(let i=Math.max(0,Math.ceil(start));i<=Math.min(candles.length-1,endIndex);i+=tick){const x=xPos(i);if(cfg.showGrid)line(x,topPad,x,H-bottomAxis,c.grid);const date=new Date(candles[i].time*1000);label(cfg.timeframe===1440?date.toLocaleDateString('en-US',{month:'short',day:'numeric'}):date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}),x,H-10,c.muted,'center',10);}
+  cx.save();cx.beginPath();cx.rect(leftPad,topPad,plotW,plotH);cx.clip();
+  for(let i=Math.max(0,Math.floor(start)-1);i<=Math.min(candles.length-1,Math.ceil(endIndex)+1);i++){
+    const d=candles[i],x=xPos(i),up=cfg.colorPrevClose&&i>0?d.close>=candles[i-1].close:d.close>=d.open,stroke=up?c.riseBorder:c.fallBorder,wick=up?c.riseWick:c.fallWick,fill=up?c.rise:c.fall;
+    if(cfg.showWicks!==false)line(x,yPos(d.high),x,yPos(d.low),wick,1);
+    const w=Math.max(1,barWidth*.67),bodyY=Math.min(yPos(d.open),yPos(d.close)),bodyH=Math.max(1,Math.abs(yPos(d.open)-yPos(d.close)));
+    cx.fillStyle=fill;cx.strokeStyle=stroke;cx.lineWidth=1;if(cfg.showBody!==false)cx.fillRect(x-w/2,bodyY,w,bodyH);if(cfg.showBorders!==false)cx.strokeRect(x-w/2,bodyY,w,bodyH);
+  }
+  if(showDrawings)for(const d of [...drawings,...(preview?[preview]:[])])paintDrawing(d,!!preview&&d===preview);
+  if(hover&&hover.x>=leftPad&&hover.x<=W-rightAxis&&hover.y>=topPad&&hover.y<=H-bottomAxis){line(hover.x,topPad,hover.x,H-bottomAxis,c.muted,1,[3,4]);line(leftPad,hover.y,W-rightAxis,hover.y,c.muted,1,[3,4]);}
+  cx.restore();
+  line(W-rightAxis,topPad,W-rightAxis,H-bottomAxis,c.grid);
+  if(hover&&hover.y>=topPad&&hover.y<=H-bottomAxis){const p=atPoint(hover.x,hover.y).price;cx.fillStyle=c.text;cx.fillRect(W-rightAxis,hover.y-11,rightAxis-5,21);label(formatPrice(p),W-rightAxis+4,hover.y+4,c.bg,'left',11);}
+  const last=candles[candles.length-1].close,yl=yPos(last);if(cfg.showPriceLine!==false&&yl>=topPad&&yl<=H-bottomAxis){line(leftPad,yl,W-rightAxis,yl,c.priceLine,1,[3,4]);cx.fillStyle=c.priceLine;cx.fillRect(W-rightAxis,yl-11,rightAxis-4,21);label(formatPrice(last),W-rightAxis+4,yl+4,'#fff','left',11);}
+}
+function paintDrawing(d,previewing){if(!d||!d.a)return;const col=previewing?'#9f71e6':'#2e85ec',a=d.a,b=d.b||d.a,xa=xPos(a.index),xb=xPos(b.index),ya=yPos(a.price),yb=yPos(b.price);
+  if(d.type==='horizontal'){line(leftPad,ya,W-rightAxis,ya,col,1.5);return;}
+  if(d.type==='vertical'){line(xa,topPad,xa,H-bottomAxis,col,1.5);return;}
+  if(d.type==='text'){label(d.text||'Note',xa,ya,col,'left',13);return;}
+  if(d.type==='ray'){const dx=xb-xa,dy=yb-ya,scaleR=dx!==0?(W-rightAxis-xa)/dx:1;line(xa,ya,xa+dx*Math.max(1,scaleR),ya+dy*Math.max(1,scaleR),col,1.8);return;}
+  if(d.type==='arrow'){line(xa,ya,xb,yb,col,2);const ang=Math.atan2(yb-ya,xb-xa);line(xb,yb,xb-12*Math.cos(ang-.5),yb-12*Math.sin(ang-.5),col,2);line(xb,yb,xb-12*Math.cos(ang+.5),yb-12*Math.sin(ang+.5),col,2);return;}
+  if(d.type==='ellipse'){cx.beginPath();cx.ellipse((xa+xb)/2,(ya+yb)/2,Math.max(1,Math.abs(xb-xa)/2),Math.max(1,Math.abs(yb-ya)/2),0,0,Math.PI*2);cx.fillStyle='rgba(46,133,236,.10)';cx.strokeStyle=col;cx.lineWidth=1.5;cx.fill();cx.stroke();return;}
+  if(d.type==='pricerange'){line(xa,ya,xa,yb,col,2);line(xa-6,ya,xa+6,ya,col,2);line(xa-6,yb,xa+6,yb,col,2);const diff=b.price-a.price;label((diff>=0?'+':'')+formatPrice(diff)+' ('+(diff/a.price*100).toFixed(2)+'%)',xa+9,(ya+yb)/2,col,'left',11);return;}
+  if(d.type==='trend'){line(xa,ya,xb,yb,col,2);return;}
+  if(d.type==='rectangle'){cx.fillStyle='rgba(46,133,236,.13)';cx.strokeStyle=col;cx.lineWidth=1.5;cx.fillRect(Math.min(xa,xb),Math.min(ya,yb),Math.abs(xb-xa),Math.abs(yb-ya));cx.strokeRect(Math.min(xa,xb),Math.min(ya,yb),Math.abs(xb-xa),Math.abs(yb-ya));return;}
+  if(d.type==='fib'){const levels=[0,.236,.382,.5,.618,.786,1];levels.forEach(r=>{let y=ya+(yb-ya)*r;line(Math.min(xa,xb),y,Math.max(xa,xb),y,col,1);label((r*100).toFixed(1)+'%',Math.min(xa,xb)+4,y-4,col,'left',10)});return;}
+  if(d.type==='long'||d.type==='short'){
+    const width=Math.max(36,Math.abs(xb-xa)),right=Math.max(xa,xb),left=right-width,profitDist=Math.abs(yb-ya),riskDist=Math.max(12,profitDist*.5),isLong=d.type==='long',profitY=isLong?ya-profitDist:ya+profitDist,stopY=isLong?ya+riskDist:ya-riskDist;
+    cx.fillStyle='rgba(29,168,135,.23)';cx.fillRect(left,Math.min(ya,profitY),width,Math.abs(profitY-ya));cx.fillStyle='rgba(225,72,87,.22)';cx.fillRect(left,Math.min(ya,stopY),width,Math.abs(stopY-ya));line(left,ya,right,ya,col,1.5);label(isLong?'LONG  R:R 1:2':'SHORT  R:R 1:2',left+4,ya-6,col,'left',10);return;
+  }
+}
+function resize(){const r=canvas.getBoundingClientRect();W=r.width;H=r.height;DPR=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);cx.setTransform(DPR,0,0,DPR,0,0);render();}
+function updateColorButtons(){
+  document.querySelectorAll('[data-chart-color]').forEach(button=>{
+    const key=button.dataset.chartColor;
+    const fill=button.querySelector('.color-preview-fill');
+    fill.style.backgroundColor=withOpacity(cfg.palettes[cfg.theme][key],key);
+    button.title=key+': '+cfg.palettes[cfg.theme][key]+' · '+cfg.opacities[cfg.theme][key]+'% opacity';
+  });
+}
+function syncChartSettings(){
+  document.querySelectorAll('[data-theme-option]').forEach(btn=>{const chosen=btn.dataset.themeOption===cfg.theme;btn.classList.toggle('chosen',chosen);btn.setAttribute('aria-pressed',String(chosen));});
+  for(const key of ['showGrid','showBody','showBorders','showWicks','showPriceLine','colorPrevClose'])$('#'+key).checked=cfg[key]!==false&&(key==='colorPrevClose'?!!cfg[key]:true);
+  updateColorButtons();
+}
+let pickerKey=null;
+function pickerPresets(){
+  const palette=['#ffffff','#f2f3f6','#d8dce2','#b7bec7','#969fac','#727e8e','#5c6572','#454e5a','#303945','#242b36','#161d27','#000000'];
+  const hues=[0,18,37,53,92,145,173,195,218,245,273,320];
+  const shades=[89,77,66,56,45,35,26,17];
+  for(const l of shades)for(const h of hues){const sat=h===53?90:79;palette.push(hslToHex(h,sat,l));}
+  return palette;
+}
+function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return '#'+[f(0),f(8),f(4)].map(x=>Math.round(255*x).toString(16).padStart(2,'0')).join('');}
+function renderSwatches(){const area=$('#swatchGrid');area.replaceChildren();const chosen=cfg.palettes[cfg.theme][pickerKey];pickerPresets().forEach(hex=>{
+  const b=document.createElement('button');b.type='button';b.className='color-swatch'+(chosen.toLowerCase()===hex.toLowerCase()?' selected':'');b.style.backgroundColor=hex;b.title=hex;b.setAttribute('aria-label','Use color '+hex);
+  b.onclick=()=>applyPaletteColor(hex);area.appendChild(b);
+});}
+function pickerSync(){if(!pickerKey)return;const hex=cfg.palettes[cfg.theme][pickerKey];$('#customPicker').value=hex;$('#pickerHex').value=hex.toUpperCase();const opacity=cfg.opacities[cfg.theme][pickerKey];$('#pickerOpacity').value=opacity;$('#opacityOutput').value=opacity+'%';$('#opacitySummary').textContent=opacity+'%';renderSwatches();updateColorButtons();}
+function openColorPicker(button){pickerKey=button.dataset.chartColor;$('#pickerTitle').textContent=button.closest('.color-option').textContent.trim();$('#colorPicker').classList.remove('hidden');pickerSync();
+  const r=button.getBoundingClientRect(),picker=$('#colorPicker');const width=picker.offsetWidth,height=picker.offsetHeight;
+  let left=r.right+10;if(left+width>window.innerWidth-8)left=r.left-width-10;if(left<8)left=Math.max(8,Math.min(window.innerWidth-width-8,r.left));
+  let top=r.top-20;if(top+height>window.innerHeight-8)top=window.innerHeight-height-8;picker.style.left=Math.max(8,left)+'px';picker.style.top=Math.max(8,top)+'px';
+}
+function closeColorPicker(){pickerKey=null;$('#colorPicker').classList.add('hidden');}
+function applyPaletteColor(hex){if(!pickerKey||!/^#[a-f0-9]{6}$/i.test(hex))return;cfg.palettes[cfg.theme][pickerKey]=hex.toLowerCase();persist();render();pickerSync();}
+function setTheme(v){cfg.theme=v==='light'?'light':'dark';document.documentElement.dataset.theme=cfg.theme;document.querySelector('meta[name="theme-color"]').content=cfg.theme==='light'?'#ffffff':'#111723';closeColorPicker();syncChartSettings();persist();render();}
+function selectTool(t){active=t;gesture=null;preview=null;document.querySelectorAll('[data-tool]').forEach(e=>e.classList.toggle('active',e.dataset.tool===t));$('#toolLabel').textContent=t.charAt(0).toUpperCase()+t.slice(1);$('#toolPopup').classList.add('hidden');canvas.style.cursor=t==='cursor'?'grab':'crosshair';render();}
+function objects(){const target=$('#objectItems');if(!target)return;target.replaceChildren();if(!drawings.length){let note=document.createElement('p');note.textContent='No drawings yet.';target.append(note);return;}drawings.forEach((d,i)=>{let node=document.createElement('div');node.className='object-row';node.textContent=(i+1)+'. '+d.type;let remove=document.createElement('button');remove.textContent='✕';remove.title='Remove drawing';remove.onclick=()=>{drawings.splice(i,1);persist();objects();render();};node.append(remove);target.append(node);});}
+function toast(message){let node=$('#toast');node.textContent=message;node.style.display='block';clearTimeout(toast.timeout);toast.timeout=setTimeout(()=>node.style.display='none',1700);}
+function coordinate(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+canvas.addEventListener('pointerdown',e=>{if(!scale)return;canvas.setPointerCapture(e.pointerId);const p=coordinate(e);gesture={start:p,last:p,anchor:atPoint(p.x,p.y),moved:false};hover=p;
+  if(active==='horizontal'||active==='vertical'||active==='text'){
+    const item={type:active,a:gesture.anchor};
+    if(active==='text'){const value=window.prompt('Text label:', 'Note');if(!value){gesture=null;return;}item.text=value.slice(0,120);}
+    drawings.push(item);gesture=null;persist();objects();render();
+  }
+});
+canvas.addEventListener('pointermove',e=>{if(!scale)return;const p=coordinate(e);hover=p;if(gesture){const g=gesture;g.moved=g.moved||Math.abs(p.x-g.start.x)>3||Math.abs(p.y-g.start.y)>3;
+  if(active==='cursor'){endIndex=Math.max(viewBars-1,Math.min(candles.length+30,endIndex+(g.last.x-p.x)/scale.barWidth));}else{preview={type:active,a:g.anchor,b:atPoint(p.x,p.y)};}g.last=p;
+}render();});
+function endPointer(e){if(!gesture)return;const g=gesture;if(active!=='cursor'&&g.moved){drawings.push({type:active,a:g.anchor,b:atPoint(coordinate(e).x,coordinate(e).y)});persist();objects();}gesture=null;preview=null;render();}
+canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',()=>{gesture=null;preview=null;render();});canvas.addEventListener('pointerleave',()=>{if(!gesture){hover=null;render();}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();const factor=e.deltaY>0?1.13:.885;viewBars=Math.round(Math.max(16,Math.min(270,viewBars*factor)));render();},{passive:false});
+$('#symbol').addEventListener('change',e=>{cfg.symbol=e.target.value;generate();persist();$('#chartLabel').textContent=cfg.symbol+' · '+$('#timeframe').selectedOptions[0].text;filterWatchlist();});
+$('#timeframe').addEventListener('change',e=>{cfg.timeframe=+e.target.value;generate();persist();$('#chartLabel').textContent=cfg.symbol+' · '+e.target.selectedOptions[0].text;});
+$('#settingsBtn').onclick=()=>togglePanel('chartSettings');
+document.querySelectorAll('[data-theme-option]').forEach(btn=>btn.onclick=()=>setTheme(btn.dataset.themeOption));
+document.querySelectorAll('[data-chart-color]').forEach(button=>button.onclick=e=>{e.preventDefault();if(pickerKey===button.dataset.chartColor&&!$('#colorPicker').classList.contains('hidden'))closeColorPicker();else openColorPicker(button);});
+$('#pickerClose').onclick=closeColorPicker;
+$('#customPicker').oninput=e=>applyPaletteColor(e.target.value);
+$('#pickerHex').addEventListener('change',e=>{let value=e.target.value.trim();if(!value.startsWith('#'))value='#'+value;if(/^#[0-9a-f]{6}$/i.test(value))applyPaletteColor(value);else pickerSync();});
+$('#pickerOpacity').oninput=e=>{if(!pickerKey)return;const v=Math.max(0,Math.min(100,Number(e.target.value)));cfg.opacities[cfg.theme][pickerKey]=v;$('#opacityOutput').value=v+'%';$('#opacitySummary').textContent=v+'%';updateColorButtons();persist();render();};
+for(const key of ['showGrid','showBody','showBorders','showWicks','showPriceLine','colorPrevClose'])$('#'+key).addEventListener('change',e=>{cfg[key]=e.target.checked;persist();render();});
+$('#resetChartColors').onclick=()=>{cfg.palettes[cfg.theme]={...paletteDefaults[cfg.theme]};cfg.opacities[cfg.theme]=opacityDefaults();syncChartSettings();if(pickerKey)pickerSync();persist();render();toast('Current theme colors reset');};
+$('#saveBtn').onclick=()=>{persist();toast('Workspace saved on this device');};
+$('#undoBtn').onclick=()=>{drawings.pop();persist();objects();render();};
+$('#eraseBtn').onclick=()=>{drawings.pop();persist();objects();render();};
+function togglePanel(id){closeColorPicker();const target=$('#'+id),wasHidden=target.classList.contains('hidden');document.querySelectorAll('.panel').forEach(n=>n.classList.add('hidden'));if(wasHidden)target.classList.remove('hidden');$('#watchBtn').setAttribute('aria-expanded',String(!$('#watchlist').classList.contains('hidden')));$('#settingsBtn').setAttribute('aria-expanded',String(!$('#chartSettings').classList.contains('hidden')));if(id==='watchlist'&&wasHidden){$('#watchSearch').value='';filterWatchlist();$('#watchSearch').focus();}}
+$('#indicatorBtn').onclick=()=>togglePanel('indicators');$('#watchBtn').onclick=()=>togglePanel('watchlist');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{closeColorPicker(); $('#'+b.dataset.close).classList.add('hidden');$('#watchBtn').setAttribute('aria-expanded','false');$('#settingsBtn').setAttribute('aria-expanded','false'); });
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>selectTool(b.dataset.tool));
+const iconSvg=(type)=>({trend:'<path d="M3 20L21 4"/>',ray:'<path d="M3 20L20 5M20 5l-5 1m5-1-1 5"/>',arrow:'<path d="M3 20L21 4M12 4h9v9"/>',horizontal:'<path d="M3 12h18"/>',vertical:'<path d="M12 3v18"/>',fib:'<path d="M2 4h20M2 9h15M2 14h20M2 19h15"/>',rectangle:'<rect x="3" y="4" width="18" height="16" rx="1"/>',ellipse:'<ellipse cx="12" cy="12" rx="9" ry="6"/>',long:'<rect x="4" y="3" width="16" height="8"/><rect x="4" y="13" width="16" height="8"/>',short:'<rect x="4" y="3" width="16" height="8"/><rect x="4" y="13" width="16" height="8"/>',pricerange:'<path d="M12 3v18M8 3h8M8 21h8"/>',text:'<path d="M3 4h18M12 4v16M8 20h8"/>'}[type]||'<path d="M4 4h16v16H4z"/>');
+const toolGroups={
+  lines:{name:'Line tools',choices:[['trend','Trend line'],['horizontal','Horizontal line'],['vertical','Vertical line'],['ray','Ray'],['arrow','Arrow']]},
+  fibonacci:{name:'Fibonacci tools',choices:[['fib','Fib retracement']]},
+  shapes:{name:'Shapes',choices:[['rectangle','Rectangle'],['ellipse','Ellipse']]},
+  positions:{name:'Positions & measurement',choices:[['long','Long position'],['short','Short position'],['pricerange','Price range']]},
+  annotations:{name:'Annotation tools',choices:[['text','Text label'],['arrow','Arrow']]}
+};
+function showToolGroup(id){const el=$('#toolPopup'),group=toolGroups[id];if(!group)return;const wasSame=el.dataset.open===id&&!el.classList.contains('hidden');el.replaceChildren();if(wasSame){el.classList.add('hidden');return;}el.dataset.open=id;const title=document.createElement('div');title.className='tool-popup-head';title.textContent=group.name;el.append(title);for(const [key,name] of group.choices){const b=document.createElement('button');b.className='tool-choice'+(active===key?' active':'');b.innerHTML='<svg viewBox="0 0 24 24">'+iconSvg(key)+'</svg><span></span>';b.querySelector('span').textContent=name;b.onclick=()=>selectTool(key);el.append(b);}el.classList.remove('hidden')}
+document.querySelectorAll('[data-group]').forEach(b=>b.onclick=e=>{e.stopPropagation();showToolGroup(b.dataset.group);});
+$('#objectBtn').onclick=()=>{objects();$('#objects').classList.toggle('hidden');$('#toolPopup').classList.add('hidden')};
+$('#visibilityBtn').onclick=()=>{showDrawings=!showDrawings;$('#visibilityBtn').style.color=showDrawings?'':'var(--muted)';toast(showDrawings?'Drawings visible':'Drawings hidden');render();};
+const list=$('#watchItems');
+function fillSymbols(){const picker=$('#symbol');picker.replaceChildren();symbols.forEach(sym=>{const opt=document.createElement('option');opt.value=sym;opt.textContent=sym;picker.append(opt);});picker.value=cfg.symbol;}
+function filterWatchlist(){const term=$('#watchSearch').value.toLowerCase().trim();list.replaceChildren();symbols.filter(sym=>(sym+' '+symbolNames[sym]).toLowerCase().includes(term)).forEach(sym=>{const row=document.createElement('div');row.className='watch-row'+(sym===cfg.symbol?' active':'');row.tabIndex=0;row.setAttribute('role','button');const meta=document.createElement('span');meta.className='watch-meta';const name=document.createElement('strong');name.textContent=sym;const sub=document.createElement('small');sub.textContent=symbolNames[sym];meta.append(name,sub);const marker=document.createElement('span');marker.className='star';marker.textContent=sym===cfg.symbol?'✓':'›';row.append(meta,marker);const choose=()=>{cfg.symbol=sym;$('#symbol').value=sym;$('#chartLabel').textContent=cfg.symbol+' · '+$('#timeframe').selectedOptions[0].text;generate();persist();$('#watchlist').classList.add('hidden');$('#watchBtn').setAttribute('aria-expanded','false');$('#watchBtn').focus();};row.onclick=choose;row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}};list.append(row);});if(!list.children.length){const empty=document.createElement('p');empty.className='small';empty.style.padding='10px';empty.textContent='No matching symbols';list.append(empty);}}
+fillSymbols();filterWatchlist();$('#watchSearch').addEventListener('input',filterWatchlist);
+document.addEventListener('pointerdown',e=>{if(!$('#colorPicker').contains(e.target)&&!e.target.closest('[data-chart-color]'))closeColorPicker();if(!$('#toolPopup').contains(e.target)&&!e.target.closest('[data-group]'))$('#toolPopup').classList.add('hidden');if(!$('#watchlist').classList.contains('hidden')&&!$('#watchlist').contains(e.target)&&!$('#watchBtn').contains(e.target)){$('#watchlist').classList.add('hidden');$('#watchBtn').setAttribute('aria-expanded','false');}});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){closeColorPicker();selectTool('cursor');$('#toolPopup').classList.add('hidden');document.querySelectorAll('.panel').forEach(n=>n.classList.add('hidden'));$('#watchBtn').setAttribute('aria-expanded','false');$('#settingsBtn').setAttribute('aria-expanded','false');}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();drawings.pop();persist();objects();render();}});
+window.addEventListener('resize',resize);
+$('#symbol').value=cfg.symbol;$('#timeframe').value=String(cfg.timeframe);$('#chartLabel').textContent=cfg.symbol+' · '+$('#timeframe').selectedOptions[0].text;
+document.documentElement.dataset.theme=cfg.theme;syncChartSettings();
+resize();generate();
+})();
+</script>
+</body>
+</html>
